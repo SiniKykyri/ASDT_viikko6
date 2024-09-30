@@ -1,0 +1,213 @@
+import pygame
+import random
+import time
+import threading
+from tkinter import Tk, Canvas, Button
+
+#-------- SUUNNITELMA TURVALLISESTA UIMA-ALTAASTA ----------------
+
+# Alustetaan pääikkuna
+root = Tk()
+canvas = Canvas(root, width=800, height=600, bg='blue') # Sinin taustaväri kuvastamaan  merta
+canvas.pack()
+
+# Määritellään saaren koko ja sijainti
+autiosaari_alue = {
+    "x_min" : 100,
+    "x_max" : 700,
+    "y_min" : 100,
+    "y_max" : 500
+}
+# Piirretään saari
+canvas.create_rectangle(
+    autiosaari_alue["x_min"], 
+    autiosaari_alue["y_min"], 
+    autiosaari_alue["x_max"], 
+    autiosaari_alue["y_max"], 
+    fill='yellow')
+
+# Määritellään uima-altaan 20 x 60 koko ja sijainti
+uima_allas_alue = {
+    "x_min" : 200,
+    "x_max" : 260,
+    "y_min" : 200,
+    "y_max" : 220
+}
+# Piirretään uima-allas
+canvas.create_rectangle(
+    uima_allas_alue["x_min"], 
+    uima_allas_alue["y_min"], 
+    uima_allas_alue["x_max"], 
+    uima_allas_alue["y_max"], 
+    fill='cyan')
+# Määritetään Ernestin oja
+ernestin_oja_alue = {
+    "x_min" : 198,
+    "x_max" : 200,
+    "y_min" : 100,
+    "y_max" : 200
+}
+# Piirretään Ernestin oja punaisella
+canvas.create_rectangle(
+    ernestin_oja_alue["x_min"], 
+    ernestin_oja_alue["y_min"], 
+    ernestin_oja_alue["x_max"], 
+    ernestin_oja_alue["y_max"], 
+    fill='red')
+
+#Määritellään Kernestin oja
+kernestin_oja_alue = {
+    "x_min" : 258,
+    "x_max" : 260,
+    "y_min" : 100,
+    "y_max" : 200
+}
+# Piirretään Kernestin oja vihreällä
+canvas.create_rectangle(
+    kernestin_oja_alue["x_min"], 
+    kernestin_oja_alue["y_min"], 
+    kernestin_oja_alue["x_max"], 
+    kernestin_oja_alue["y_max"], 
+    fill='green')
+
+# Määritellään uima-allas matriisi listojen avulla. Lukuarvo 0 kuvastaa, että allas on tyhjä.
+uima_allas_matriisi = [[0 for x in range(60)] for y in range(20)]
+# Määritellään oja matriisi listojen avulla. Arvo 1 = hiekkaa
+ernestin_oja_matriisi =[[1 for x in range(2)] for y in range(100)]
+kernestin_oja_matriisi =[[1 for x in range(2)] for y in range(100)]
+
+# Luodaan saarelle metsä alue
+metsä_alue = {
+    "x_min" : 150,
+    "x_max" : 650,
+    "y_min" : 300,
+    "y_max" : 450
+}
+# Piirretään metsä
+canvas.create_rectangle(
+    metsä_alue["x_min"], 
+    metsä_alue["y_min"], 
+    metsä_alue["x_max"], 
+    metsä_alue["y_max"], 
+    fill='#006400')
+# -------- SUUNNITELMA TURVALLISESTA UIMA-ALTAASTA PÄÄTTYY ----------------
+
+# -------- RAKENTAMISEEN TARVITTAVAN TYÖVOIMAN HANKINTA ----------------
+# Alustetaan pygame
+pygame.mixer.init()
+# Ladataan äänet
+kaiva_aani = pygame.mixer.Sound("kaiva.wav")
+
+#Funktio äänen soittamiselle
+def play_sound(sound):
+    sound.play()
+
+# Määritellään sanakirja, jossa apinat ovat 
+apinat = {}
+# Luodaan funktio, joka luo yhden joutilaan apinan nappia painettaessa.
+def luo_joutilas_apina():
+    apina_id = len(apinat) + 1 # Luodaan apinalle uniikki ID
+    # Sijoitetaan apina satunnaiseen paikkaan metsässä
+    x = random.randint(metsä_alue["x_min"], metsä_alue["x_max"]-10) # Arvotaan apinalle x-koordinaatti
+    y = random.randint(metsä_alue["y_min"], metsä_alue["y_max"]-10) # Arvotaan apinalle y-koordinaatti
+    apinan_kuva = canvas.create_oval(x, y, x + 10, y + 10, fill='saddlebrown') # Piirretään apina
+    #Tallenetaan apina sanakirjaan
+    apinat[apina_id] = {
+       "kuva" : apinan_kuva,
+       "tila" : "joutilaana",
+       "sijainti" : {
+           "x" : x,
+           "y" : y
+       },
+       "henkilö" : None
+    }
+    print(f"Luotiin apina {apina_id} T. Luo juotilas apina nappi funktio")
+
+# Luodaan funktio, jolla Ernesti hakee yhden apinan ja valmistelee sen tehtävää varten
+def ernesti_hakee_apinan():
+    joutilaat_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "joutilaana"] # Haetaan kaikki joutilaana olevat apinat
+    if joutilaat_apinat: # Jos joutilaana olevia apinoita on
+        ernestin_valitsema_apina = random.choice(joutilaat_apinat) # Valitaan satunnainen apina joutilaana olevista apinoista
+        print(f"Ernesti valitsi apinan {ernestin_valitsema_apina}")
+        apinat[ernestin_valitsema_apina]["tila"] = "valmis_työhön" # Muutetaan apinan tila valmiiksi työhön.
+        apinat[ernestin_valitsema_apina]["henkilö"] = "Ernesti" # Merkataan apina Ernestin omaksi
+        #Arvotaan apinalla satunnainen sijainti Ernestin ojalta
+        x= random.randint(ernestin_oja_alue["x_min"], ernestin_oja_alue["x_max"])
+        y = random.randint(ernestin_oja_alue["y_min"], ernestin_oja_alue["y_max"])
+        apinat[ernestin_valitsema_apina]["sijainti"] = {"x" : x, "y" : y}
+        canvas.coords(apinat[ernestin_valitsema_apina]["kuva"], x, y, x + 10, y + 10) # Siirretään apina Ernestin ojalle
+    else:
+        print("Ei joutilaana olevia apinoita.")
+        return
+# Luodaan funktio, jolla valitaan yksi valmiiksi työhön merkitty apina ja kutsutaan kaiva funktiota
+def ernesti_laittaa_apinan_kaivamaan():
+    print("Ernesti laittaa apinan kaivamaan")
+    valmiit_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "valmis_työhön" and apina["henkilö"]=="Ernesti"] # Haetaan kaikki valmiiksi työhön merkityt apinat, jotka ovat Ernestin hakemia
+    if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
+        valittu_apina = random.choice(valmiit_apinat)
+        #Käynnistetään kaiva funktio omassa säikeessään
+        threading.Thread(target=kaiva, args=(valittu_apina,)).start()
+    else:
+        print("Ei valmiiksi työhön merkittyjä apinoita.")
+        return
+    
+# Luodaan funktio joka kuvastaa kaivamista   
+def kaiva(apina_id):
+    print(f"Apina {apina_id} kaivaa")
+    # Haetaan apinan tiedot sanakirjasta
+    apina = apinat[apina_id]
+    x = apina["sijainti"]["x"]
+    y = apina["sijainti"]["y"]
+    # Määritellään aloituspaikka kaivamiselle, koska apina on satunnaisessa kohti ernestin ojaa
+    aloitus_indeksi = y # Tästä lähdetään
+    lopetus_ideksi = ernestin_oja_alue["y_min"] # Tähän lopetetaan
+    indeksi = abs(lopetus_ideksi - aloitus_indeksi) # Lasketaan kaivamisen pituus ja palautetaan absoluuttinen arvo
+    matriisi_indeksi = abs(aloitus_indeksi - len(ernestin_oja_matriisi)) # Aloitetaan oja matriisin täyttäminen tästä indeksistä. Ajatus, että indeksi 100 on altaan päässä ja 0 meren päässä.
+    lepoaika = 1 # Kaivamisen lepoaika
+    print(f"Kaivetaan {indeksi} yksikköä")
+    
+    # Simuloidaan kaivamista
+    for i in range(indeksi):
+        print(matriisi_indeksi) # Tulostetaan matriisi indeksi, jotta nähdään mihin kohtaan ojaa kaivetaan
+        matriisi_indeksi -= 1 # Siirretään matriisi indeksiä yksi taaksepäin
+        ernestin_oja_matriisi[matriisi_indeksi][0] = 0 # Kaivetaan ojaa
+        play_sound(kaiva_aani) # Soitetaan kaiva ääni
+        print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
+        canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
+        time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
+        print(f"Lepoaika on {lepoaika}")
+        lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
+       
+# Luodaan nappi, jolla lisätään joutilas apina
+lisaa_joutilas_apina_nappi = Button(root, text='Kohta 2: Lisää joutilas apina', command=luo_joutilas_apina)
+lisaa_joutilas_apina_nappi.pack()
+# Luodaan nappi, jolla Ernesti hakee yhden apinan. Kutsutaan funktiota omassa säikeessään.
+ernesti_hakee_apinan_nappi = Button(root, text='Kohta 2: Ernesti hakee apinan', command=lambda: threading.Thread(target =ernesti_hakee_apinan).start())
+ernesti_hakee_apinan_nappi.pack()
+# Luodaan nappi, jolla Ernesti laittaa yhden apinan kaivamaan.
+ernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 2: Ernesti: Laita apina kaivamaan', command=ernesti_laittaa_apinan_kaivamaan) 
+ernesti_laittaa_apinan_kaivamaan_nappi.pack()
+
+# -------- RAKENTAMISEEN TARVITTAVAN TYÖVOIMAN HANKINTA PÄÄTTYY ----------------
+
+
+# ----------- DEBUGGIN ------------------
+# Tämä on nyt vain debuggausta varten oleva funktio, jolla voin tarkistaa apinoiden tilan
+def tulosta_apinat():
+    print(apinat)
+
+def tulosta_ernestin_oja_matriisi():
+    print(ernestin_oja_matriisi)
+
+# Luodaan nappi, jolla tulostetaan apinoiden tila
+tulosta_apinat_nappi = Button(root, text='Tulosta apinat', command=tulosta_apinat)
+tulosta_apinat_nappi.pack()
+
+tulosta_ernestin_oja_nappi = Button(root, text='Tulosta Ernestin oja', command=tulosta_ernestin_oja_matriisi)
+tulosta_ernestin_oja_nappi.pack()
+#-------- DEBUGGIN PÄÄTTYY ----------------
+
+
+
+# Käynnistetään pääikkuna
+root.mainloop()
