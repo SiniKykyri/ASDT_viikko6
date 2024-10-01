@@ -139,6 +139,7 @@ def ernesti_hakee_apinan():
     else:
         print("Ei joutilaana olevia apinoita.")
         return
+    
 # Luodaan funktio, jolla valitaan yksi valmiiksi työhön merkitty apina ja kutsutaan kaiva funktiota
 def ernesti_laittaa_apinan_kaivamaan():
     print("Ernesti laittaa apinan kaivamaan")
@@ -146,13 +147,13 @@ def ernesti_laittaa_apinan_kaivamaan():
     if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
         valittu_apina = random.choice(valmiit_apinat)
         #Käynnistetään kaiva funktio omassa säikeessään
-        threading.Thread(target=kaiva, args=(valittu_apina,)).start()
+        threading.Thread(target=ernesti_kaiva, args=(valittu_apina,)).start()
     else:
         print("Ei valmiiksi työhön merkittyjä apinoita.")
         return
     
 # Luodaan funktio joka kuvastaa kaivamista   
-def kaiva(apina_id):
+def ernesti_kaiva(apina_id):
     print(f"Apina {apina_id} kaivaa")
     # Haetaan apinan tiedot sanakirjasta
     apina = apinat[apina_id]
@@ -190,6 +191,121 @@ ernesti_laittaa_apinan_kaivamaan_nappi.pack()
 
 # -------- RAKENTAMISEEN TARVITTAVAN TYÖVOIMAN HANKINTA PÄÄTTYY ----------------
 
+# --------------------- YHDESSÄ ENEMMÄN ----------------------------------------
+
+# Luodaan funktio, jolla Kernesti hakee yhden apinan ja valmistelee sen tehtävää varten
+def kernesti_hakee_apinan():
+    joutilaat_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "joutilaana"] # Haetaan kaikki joutilaana olevat apinat
+    if joutilaat_apinat: # Jos joutilaana olevia apinoita on
+        Kernestin_valitsema_apina = random.choice(joutilaat_apinat) # Valitaan satunnainen apina joutilaana olevista apinoista
+        print(f"Kernesti valitsi apinan {Kernestin_valitsema_apina}")
+        apinat[Kernestin_valitsema_apina]["tila"] = "valmis_työhön" # Muutetaan apinan tila valmiiksi työhön.
+        apinat[Kernestin_valitsema_apina]["henkilö"] = "Kernesti" # Merkataan apina Ernestin omaksi
+        #Arvotaan apinalla satunnainen sijainti Ernestin ojalta
+        x= random.randint(kernestin_oja_alue["x_min"], kernestin_oja_alue["x_max"])
+        y = random.randint(kernestin_oja_alue["y_min"], kernestin_oja_alue["y_max"])
+        apinat[Kernestin_valitsema_apina]["sijainti"] = {"x" : x, "y" : y}
+        canvas.coords(apinat[Kernestin_valitsema_apina]["kuva"], x, y, x + 10, y + 10) # Siirretään apina Kernestin ojalle
+    else:
+        print("Ei joutilaana olevia apinoita.")
+        return
+    
+# Luodaan funktio joka kuvastaa kaivamista   
+def kernesti_kaiva(apina_id):
+    print(f"Apina {apina_id} kaivaa")
+    # Haetaan apinan tiedot sanakirjasta
+    apina = apinat[apina_id]
+    x = apina["sijainti"]["x"]
+    y = apina["sijainti"]["y"]
+    # Määritellään aloituspaikka kaivamiselle, koska apina on satunnaisessa kohti ernestin ojaa
+    aloitus_indeksi = y # Tästä lähdetään
+    lopetus_ideksi = kernestin_oja_alue["y_min"] # Tähän lopetetaan
+    indeksi = abs(lopetus_ideksi - aloitus_indeksi) # Lasketaan kaivamisen pituus ja palautetaan absoluuttinen arvo
+    matriisi_indeksi = abs(aloitus_indeksi - len(kernestin_oja_matriisi)) # Aloitetaan oja matriisin täyttäminen tästä indeksistä. Ajatus, että indeksi 100 on altaan päässä ja 0 meren päässä.
+    lepoaika = 1 # Kaivamisen lepoaika
+    print(f"Kaivetaan {indeksi} yksikköä")
+    
+    # Simuloidaan kaivamista
+    for i in range(indeksi):
+        print(matriisi_indeksi) # Tulostetaan matriisi indeksi, jotta nähdään mihin kohtaan ojaa kaivetaan
+        matriisi_indeksi -= 1 # Siirretään matriisi indeksiä yksi taaksepäin
+        kernestin_oja_matriisi[matriisi_indeksi][0] = 0 # Kaivetaan ojaa
+        play_sound(kaiva_aani) # Soitetaan kaiva ääni
+        print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
+        canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
+        time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
+        print(f"Lepoaika on {lepoaika}")
+        lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
+
+# Luodaan funktio, jolla valitaan yksi valmiiksi työhön merkitty apina ja kutsutaan kaiva funktiota
+def kernesti_laittaa_apinan_kaivamaan():
+    print("kernesti laittaa apinan kaivamaan")
+    valmiit_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "valmis_työhön" and apina["henkilö"]=="Kernesti"] # Haetaan kaikki valmiiksi työhön merkityt apinat, jotka ovat Ernestin hakemia
+    if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
+        valittu_apina = random.choice(valmiit_apinat)
+        #Käynnistetään kaiva funktio omassa säikeessään
+        threading.Thread(target=kernesti_kaiva, args=(valittu_apina,)).start() 
+    else:
+        print("Ei valmiiksi työhön merkittyjä apinoita.")
+        return
+
+# Luodaan funktio, jolla Ernesti voi lisätä uuden apinan kaivamaan. Tämä siis on mahdollista, jo napilla Ernesti laittaa apinan kaivamaan, mutta tässä funktiossa, kutsutaan eri kaivaus funktiota, jossa on tarkistus onko kohta jo kaivettu vai ei.
+def ernesti_laittaa_uuden_apinan_kaivamaan():
+    print("Ernesti laittaa uuden apinan kaivamaan")
+    valmiit_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "valmis_työhön" and apina["henkilö"]=="Ernesti"] # Haetaan kaikki valmiiksi työhön merkityt apinat, jotka ovat Ernestin hakemia
+    if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
+        valittu_apina = random.choice(valmiit_apinat)
+        #Käynnistetään kaiva funktio omassa säikeessään
+        threading.Thread(target=ernesti_kaiva_uusi_apina, args=(valittu_apina,)).start()
+    else:
+        print("Ei valmiiksi työhön merkittyjä apinoita.")
+        return
+
+# Kaivuu funktio. Tämä funktio noudattaa samaa periaatetta kuin kohdan 2 funktio, mutta tässä on tarkistus onko kohta jo kaivettu vai ei.
+def ernesti_kaiva_uusi_apina(apina_id):
+    # Haetaan apinan tiedot sanakirjasta
+    apina = apinat[apina_id]
+    x = apina["sijainti"]["x"]
+    y = apina["sijainti"]["y"]
+    # Määritellään aloituspaikka kaivamiselle, koska apina on satunnaisessa kohti ernestin ojaa
+    aloitus_indeksi = y # Tästä lähdetään
+    lopetus_ideksi = ernestin_oja_alue["y_min"] # Tähän lopetetaan
+    indeksi = abs(lopetus_ideksi - aloitus_indeksi) # Lasketaan kaivamisen pituus ja palautetaan absoluuttinen arvo
+    matriisi_indeksi = abs(aloitus_indeksi - len(ernestin_oja_matriisi)) # Aloitetaan oja matriisin täyttäminen tästä indeksistä. Ajatus, että indeksi 100 on altaan päässä ja 0 meren päässä.
+    lepoaika = 1 # Kaivamisen lepoaika
+    #Muutetaan apinan väri osoittamaan, että se tekee töitä
+    canvas.itemconfig(apina["kuva"], fill='black')
+       
+        # Simuloidaan kaivamista
+    for i in range(indeksi):
+        print(matriisi_indeksi) # Tulostetaan matriisi indeksi, jotta nähdään mihin kohtaan ojaa kaivetaan
+        matriisi_indeksi -= 1 # Siirretään matriisi indeksiä yksi taaksepäin
+        if ernestin_oja_matriisi[matriisi_indeksi][0] == 0: # Jos kohta on jo kaivettu, niin valitaan uusi kohta
+            canvas.itemconfig(apina["kuva"], fill='red') # Muuutetaan apinan väri, että hommat loppu
+            print("Kohta on jo kaivettu, valitse toinen apina kaivuu urakkaan")
+            return
+
+        else:
+            ernestin_oja_matriisi[matriisi_indeksi][0] = 0 # Kaivetaan ojaa
+            play_sound(kaiva_aani) # Soitetaan kaiva ääni
+            print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
+            canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
+            time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
+            print(f"Lepoaika on {lepoaika}")
+            lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
+       
+
+# Luodaan nappi, jolla Kernesti hakee yhden apinan. Kutsutaan funktiota omassa säikeessään.
+kernesti_hakee_apinan_nappi = Button(root, text='Kohta 3: Kernesti hakee apinan', command=lambda: threading.Thread(target =kernesti_hakee_apinan).start())
+kernesti_hakee_apinan_nappi.pack()
+# Luodaan nappi, jolla Ernesti laittaa yhden apinan kaivamaan.
+kernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 3: Kernesti: Laita apina kaivamaan', command=kernesti_laittaa_apinan_kaivamaan) 
+kernesti_laittaa_apinan_kaivamaan_nappi.pack()
+# Luodaan nappi, jolla Ernesti voi lisätä uuden apinan kaivamaan. 
+ernesti_laita_uusi_apina_kaivamaan_nappi = Button(root, text='Kohta 3: Ernesti: Laita uusi apina kaivamaan', command=ernesti_laittaa_uuden_apinan_kaivamaan)
+ernesti_laita_uusi_apina_kaivamaan_nappi.pack()
+
+# --------------------- YHDESSÄ ENEMMÄN PÄÄTTYY --------------------------------
 
 # ----------- DEBUGGIN ------------------
 # Tämä on nyt vain debuggausta varten oleva funktio, jolla voin tarkistaa apinoiden tilan
@@ -199,12 +315,18 @@ def tulosta_apinat():
 def tulosta_ernestin_oja_matriisi():
     print(ernestin_oja_matriisi)
 
+def tulosta_kernestin_oja_matriisi():
+    print(kernestin_oja_matriisi)
+
 # Luodaan nappi, jolla tulostetaan apinoiden tila
 tulosta_apinat_nappi = Button(root, text='Tulosta apinat', command=tulosta_apinat)
 tulosta_apinat_nappi.pack()
 
 tulosta_ernestin_oja_nappi = Button(root, text='Tulosta Ernestin oja', command=tulosta_ernestin_oja_matriisi)
 tulosta_ernestin_oja_nappi.pack()
+
+tulosta_kernestin_oja_nappi = Button(root, text='Tulosta Kernestin oja', command=tulosta_kernestin_oja_matriisi)
+tulosta_kernestin_oja_nappi.pack()
 #-------- DEBUGGIN PÄÄTTYY ----------------
 
 
