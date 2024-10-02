@@ -43,7 +43,7 @@ canvas.create_rectangle(
 # Määritetään Ernestin oja
 ernestin_oja_alue = {
     "x_min" : 198,
-    "x_max" : 200,
+    "x_max" : 201,
     "y_min" : 100,
     "y_max" : 200
 }
@@ -53,12 +53,12 @@ canvas.create_rectangle(
     ernestin_oja_alue["y_min"], 
     ernestin_oja_alue["x_max"], 
     ernestin_oja_alue["y_max"], 
-    fill='red')
+    fill='yellow')
 
 #Määritellään Kernestin oja
 kernestin_oja_alue = {
     "x_min" : 258,
-    "x_max" : 260,
+    "x_max" : 261,
     "y_min" : 100,
     "y_max" : 200
 }
@@ -68,7 +68,7 @@ canvas.create_rectangle(
     kernestin_oja_alue["y_min"], 
     kernestin_oja_alue["x_max"], 
     kernestin_oja_alue["y_max"], 
-    fill='green')
+    fill='yellow')
 
 # Määritellään uima-allas matriisi listojen avulla. Lukuarvo 0 kuvastaa, että allas on tyhjä.
 uima_allas_matriisi = [[0 for x in range(60)] for y in range(20)]
@@ -181,10 +181,10 @@ def ernesti_kaiva(apina_id):
        
 # Luodaan nappi, jolla lisätään joutilas apina
 lisaa_joutilas_apina_nappi = Button(root, text='Kohta 2: Lisää joutilas apina', command=luo_joutilas_apina)
-lisaa_joutilas_apina_nappi.pack()
+lisaa_joutilas_apina_nappi.place(x=300, y=455)
 # Luodaan nappi, jolla Ernesti hakee yhden apinan. Kutsutaan funktiota omassa säikeessään.
 ernesti_hakee_apinan_nappi = Button(root, text='Kohta 2: Ernesti hakee apinan', command=lambda: threading.Thread(target =ernesti_hakee_apinan).start())
-ernesti_hakee_apinan_nappi.pack()
+ernesti_hakee_apinan_nappi.place(x=10, y=50)
 # Luodaan nappi, jolla Ernesti laittaa yhden apinan kaivamaan.
 ernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 2: Ernesti: Laita apina kaivamaan', command=ernesti_laittaa_apinan_kaivamaan) 
 ernesti_laittaa_apinan_kaivamaan_nappi.pack()
@@ -249,19 +249,25 @@ def kernesti_laittaa_apinan_kaivamaan():
         print("Ei valmiiksi työhön merkittyjä apinoita.")
         return
 
-# Luodaan funktio, jolla Ernesti voi lisätä uuden apinan kaivamaan. Tämä siis on mahdollista, jo napilla Ernesti laittaa apinan kaivamaan, mutta tässä funktiossa, kutsutaan eri kaivaus funktiota, jossa on tarkistus onko kohta jo kaivettu vai ei.
+# FUNKTIOT UUDEN APINAN KAIVUUTYÖHÖN LAITTAMISEEN
+
+# Luodaan funktio, jolla Ernesti voi lisätä uuden apinan kaivamaan. Tässä lisäyksenä edelliseen kaivamis funktioon, on että apinan tila muutetaan työssä, jotta sitä ei enää valita uudestaan.
 def ernesti_laittaa_uuden_apinan_kaivamaan():
     print("Ernesti laittaa uuden apinan kaivamaan")
     valmiit_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "valmis_työhön" and apina["henkilö"]=="Ernesti"] # Haetaan kaikki valmiiksi työhön merkityt apinat, jotka ovat Ernestin hakemia
     if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
         valittu_apina = random.choice(valmiit_apinat)
+        #Muutetaan apinan tila kertomaan, että se tekee jo töitä
+        apinat[valittu_apina]["tila"] = "työssä"
         #Käynnistetään kaiva funktio omassa säikeessään
         threading.Thread(target=ernesti_kaiva_uusi_apina, args=(valittu_apina,)).start()
     else:
         print("Ei valmiiksi työhön merkittyjä apinoita.")
         return
 
-# Kaivuu funktio. Tämä funktio noudattaa samaa periaatetta kuin kohdan 2 funktio, mutta tässä on tarkistus onko kohta jo kaivettu vai ei.
+# Kaivuu funktio. Tämä funktio noudattaa samaa periaatetta kuin kohdan 2 funktio, mutta tässä apinan kaivaa ojaa aina syvemmälle 
+# sekä tähän on lisätty ojan kaivamisen edistyminen. 
+
 def ernesti_kaiva_uusi_apina(apina_id):
     # Haetaan apinan tiedot sanakirjasta
     apina = apinat[apina_id]
@@ -273,37 +279,106 @@ def ernesti_kaiva_uusi_apina(apina_id):
     indeksi = abs(lopetus_ideksi - aloitus_indeksi) # Lasketaan kaivamisen pituus ja palautetaan absoluuttinen arvo
     matriisi_indeksi = abs(aloitus_indeksi - len(ernestin_oja_matriisi)) # Aloitetaan oja matriisin täyttäminen tästä indeksistä. Ajatus, että indeksi 100 on altaan päässä ja 0 meren päässä.
     lepoaika = 1 # Kaivamisen lepoaika
-    #Muutetaan apinan väri osoittamaan, että se tekee töitä
-    canvas.itemconfig(apina["kuva"], fill='black')
+    canvas.itemconfig(apina["kuva"], fill='black')#Muutetaan apinan väri osoittamaan, että se tekee töitä
+
+    ojan_korkeus = ernestin_oja_alue["y_max"] - ernestin_oja_alue["y_min"] # Lasketaan ojan korkeus pikseleinä
+    matriisin_korkeus = len(ernestin_oja_matriisi) # Lasketaan matriisin korkeus
+    pikselit_per_askel = ojan_korkeus / matriisin_korkeus # Lasketaan kuinka monta pikseliä yksi askel on
+       
+    # Simuloidaan kaivamista
+    for i in range(indeksi):
+        print(matriisi_indeksi) # Tulostetaan matriisi indeksi, jotta nähdään mihin kohtaan ojaa kaivetaan
+        matriisi_indeksi -= 1 # Siirretään matriisi indeksiä yksi taaksepäin
+        ernestin_oja_matriisi[matriisi_indeksi][0] -= 1 # Kaivetaan ojaa
+        play_sound(kaiva_aani) # Soitetaan kaiva ääni
+        # Lasketaan canvasin y-koordinaattit kaivamisen perusteella
+        y_alku = ernestin_oja_alue["y_min"] + matriisi_indeksi * pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin yläraja
+        y_loppu = y_alku + pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin alaraja
+        if ernestin_oja_matriisi[matriisi_indeksi][0] <= 0: #Muuta ojan väriä, jos arvo on 0 tai vähemmän
+            canvas.create_rectangle( # Piirretään ojan osa uudella värillä
+                ernestin_oja_alue["x_min"], 
+                y_alku, 
+                ernestin_oja_alue["x_max"], 
+                y_loppu, 
+                fill='red', 
+                outline='red')
+            canvas.update()
+
+        print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
+        canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
+        time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
+        lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
+
+# Luodaan funktio, jolla Ernesti voi lisätä uuden apinan kaivamaan. Tässä lisäyksenä edelliseen kaivamis funktioon, on että apinan tila muutetaan työssä, jotta sitä ei enää valita uudestaan.
+def kernesti_laittaa_uuden_apinan_kaivamaan():
+    print("Kernesti laittaa uuden apinan kaivamaan")
+    valmiit_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "valmis_työhön" and apina["henkilö"]=="Kernesti"] # Haetaan kaikki valmiiksi työhön merkityt apinat, jotka ovat Ernestin hakemia
+    if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
+        valittu_apina = random.choice(valmiit_apinat)
+        #Muutetaan apinan tila kertomaan, että se tekee jo töitä
+        apinat[valittu_apina]["tila"] = "työssä"
+        #Käynnistetään kaiva funktio omassa säikeessään
+        threading.Thread(target=kernesti_kaiva_uusi_apina, args=(valittu_apina,)).start()
+    else:
+        print("Ei valmiiksi työhön merkittyjä apinoita.")
+        return
+
+# Kaivuu funktio. Tämä funktio noudattaa samaa periaatetta kuin kohdan 2 funktio, mutta tässä apinan kaivaa ojaa aina syvemmälle.
+def kernesti_kaiva_uusi_apina(apina_id):
+    # Haetaan apinan tiedot sanakirjasta
+    apina = apinat[apina_id]
+    x = apina["sijainti"]["x"]
+    y = apina["sijainti"]["y"]
+    # Määritellään aloituspaikka kaivamiselle, koska apina on satunnaisessa kohti kernestin ojaa
+    aloitus_indeksi = y # Tästä lähdetään
+    lopetus_ideksi = kernestin_oja_alue["y_min"] # Tähän lopetetaan
+    indeksi = abs(lopetus_ideksi - aloitus_indeksi) # Lasketaan kaivamisen pituus ja palautetaan absoluuttinen arvo
+    matriisi_indeksi = abs(aloitus_indeksi - len(kernestin_oja_matriisi)) # Aloitetaan oja matriisin täyttäminen tästä indeksistä. Ajatus, että indeksi 100 on altaan päässä ja 0 meren päässä.
+    lepoaika = 1 # Kaivamisen lepoaika
+    canvas.itemconfig(apina["kuva"], fill='black') #Muutetaan apinan väri osoittamaan, että se tekee töitä
+
+    ojan_korkeus = kernestin_oja_alue["y_max"] - kernestin_oja_alue["y_min"] # Lasketaan ojan korkeus pikseleinä
+    matriisin_korkeus = len(kernestin_oja_matriisi) # Lasketaan matriisin korkeus
+    pikselit_per_askel = ojan_korkeus / matriisin_korkeus # Lasketaan kuinka monta pikseliä yksi askel on
        
         # Simuloidaan kaivamista
     for i in range(indeksi):
         print(matriisi_indeksi) # Tulostetaan matriisi indeksi, jotta nähdään mihin kohtaan ojaa kaivetaan
         matriisi_indeksi -= 1 # Siirretään matriisi indeksiä yksi taaksepäin
-        if ernestin_oja_matriisi[matriisi_indeksi][0] == 0: # Jos kohta on jo kaivettu, niin valitaan uusi kohta
-            canvas.itemconfig(apina["kuva"], fill='red') # Muuutetaan apinan väri, että hommat loppu
-            print("Kohta on jo kaivettu, valitse toinen apina kaivuu urakkaan")
-            return
+        kernestin_oja_matriisi[matriisi_indeksi][0] -= 1 # Kaivetaan ojaa
+        play_sound(kaiva_aani) # Soitetaan kaiva ääni
+        # Lasketaan canvasin y-koordinaattit kaivamisen perusteella
+        y_alku = kernestin_oja_alue["y_min"] + matriisi_indeksi * pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin yläraja
+        y_loppu = y_alku + pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin alaraja
+        if kernestin_oja_matriisi[matriisi_indeksi][0] <= 0: #Muuta ojan väriä, jos arvo on 0 tai vähemmän
+            canvas.create_rectangle( # Piirretään ojan osa uudella värillä
+                kernestin_oja_alue["x_min"], 
+                y_alku, 
+                kernestin_oja_alue["x_max"], 
+                y_loppu, 
+                fill='red', 
+                outline='red')
+            canvas.update()
 
-        else:
-            ernestin_oja_matriisi[matriisi_indeksi][0] = 0 # Kaivetaan ojaa
-            play_sound(kaiva_aani) # Soitetaan kaiva ääni
-            print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
-            canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
-            time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
-            print(f"Lepoaika on {lepoaika}")
-            lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
-       
+        print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
+        canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
+        time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
+        print(f"Lepoaika on {lepoaika}")
+        lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
+              
 
 # Luodaan nappi, jolla Kernesti hakee yhden apinan. Kutsutaan funktiota omassa säikeessään.
 kernesti_hakee_apinan_nappi = Button(root, text='Kohta 3: Kernesti hakee apinan', command=lambda: threading.Thread(target =kernesti_hakee_apinan).start())
-kernesti_hakee_apinan_nappi.pack()
+kernesti_hakee_apinan_nappi.place(x=250, y=50)
 # Luodaan nappi, jolla Ernesti laittaa yhden apinan kaivamaan.
 kernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 3: Kernesti: Laita apina kaivamaan', command=kernesti_laittaa_apinan_kaivamaan) 
 kernesti_laittaa_apinan_kaivamaan_nappi.pack()
 # Luodaan nappi, jolla Ernesti voi lisätä uuden apinan kaivamaan. 
 ernesti_laita_uusi_apina_kaivamaan_nappi = Button(root, text='Kohta 3: Ernesti: Laita uusi apina kaivamaan', command=ernesti_laittaa_uuden_apinan_kaivamaan)
 ernesti_laita_uusi_apina_kaivamaan_nappi.pack()
+# Luodaan nappi, jolla Kernesti voi lisätä uuden apinan kaivamaan. 
+kernesti_laita_uusi_apina_kaivamaan_nappi = Button(root, text='Kohta 3: Kernesti: Laita uusi apina kaivamaan', command=kernesti_laittaa_uuden_apinan_kaivamaan)
+kernesti_laita_uusi_apina_kaivamaan_nappi.pack()
 
 # --------------------- YHDESSÄ ENEMMÄN PÄÄTTYY --------------------------------
 
