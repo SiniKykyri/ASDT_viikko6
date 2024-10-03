@@ -97,6 +97,9 @@ canvas.create_rectangle(
 pygame.mixer.init()
 # Ladataan äänet
 kaiva_aani = pygame.mixer.Sound("kaiva.wav")
+vesi = pygame.mixer.Sound("vesi.wav")
+e_voitti = pygame.mixer.Sound("e_piip.wav")
+k_voitti = pygame.mixer.Sound("k_piip.wav")
 
 #Funktio äänen soittamiselle
 def play_sound(sound):
@@ -121,14 +124,12 @@ def luo_joutilas_apina():
        },
        "henkilö" : None
     }
-    print(f"Luotiin apina {apina_id} T. Luo juotilas apina nappi funktio")
 
 # Luodaan funktio, jolla Ernesti hakee yhden apinan ja valmistelee sen tehtävää varten
 def ernesti_hakee_apinan():
     joutilaat_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "joutilaana"] # Haetaan kaikki joutilaana olevat apinat
     if joutilaat_apinat: # Jos joutilaana olevia apinoita on
         ernestin_valitsema_apina = random.choice(joutilaat_apinat) # Valitaan satunnainen apina joutilaana olevista apinoista
-        print(f"Ernesti valitsi apinan {ernestin_valitsema_apina}")
         apinat[ernestin_valitsema_apina]["tila"] = "valmis_työhön" # Muutetaan apinan tila valmiiksi työhön.
         apinat[ernestin_valitsema_apina]["henkilö"] = "Ernesti" # Merkataan apina Ernestin omaksi
         #Arvotaan apinalla satunnainen sijainti Ernestin ojalta
@@ -186,8 +187,8 @@ lisaa_joutilas_apina_nappi.place(x=300, y=455)
 ernesti_hakee_apinan_nappi = Button(root, text='Kohta 2: Ernesti hakee apinan', command=lambda: threading.Thread(target =ernesti_hakee_apinan).start())
 ernesti_hakee_apinan_nappi.place(x=10, y=50)
 # Luodaan nappi, jolla Ernesti laittaa yhden apinan kaivamaan.
-ernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 2: Ernesti: Laita apina kaivamaan', command=ernesti_laittaa_apinan_kaivamaan) 
-ernesti_laittaa_apinan_kaivamaan_nappi.pack()
+#ernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 2: Ernesti: Laita apina kaivamaan', command=ernesti_laittaa_apinan_kaivamaan) 
+#ernesti_laittaa_apinan_kaivamaan_nappi.pack()
 
 # -------- RAKENTAMISEEN TARVITTAVAN TYÖVOIMAN HANKINTA PÄÄTTYY ----------------
 
@@ -196,6 +197,8 @@ ernesti_laittaa_apinan_kaivamaan_nappi.pack()
 stop_thread = False
 #LUKKO
 lukko = threading.Lock()
+# Boolean matriisi, joka kertoo onko ojassa vettä. Vaikuttaa siihen, että jatkaako apina kaivamista.
+ojassa_vetta = [[False for x in range(2)] for y in range(100)] # False = ei vettä, True = vettä
 
 # Luodaan funktio, jolla Kernesti hakee yhden apinan ja valmistelee sen tehtävää varten
 def kernesti_hakee_apinan():
@@ -257,7 +260,6 @@ def kernesti_laittaa_apinan_kaivamaan():
 
 # Luodaan funktio, jolla Ernesti voi lisätä uuden apinan kaivamaan. Tässä lisäyksenä edelliseen kaivamis funktioon, on että apinan tila muutetaan työssä, jotta sitä ei enää valita uudestaan.
 def ernesti_laittaa_uuden_apinan_kaivamaan():
-    print("Ernesti laittaa uuden apinan kaivamaan")
     valmiit_apinat = [apina_id for apina_id, apina in apinat.items() if apina["tila"] == "valmis_työhön" and apina["henkilö"]=="Ernesti"] # Haetaan kaikki valmiiksi työhön merkityt apinat, jotka ovat Ernestin hakemia
     if valmiit_apinat: #Tarkistetaan onko apinoita, joiden tila on "valmis työhön"
         valittu_apina = random.choice(valmiit_apinat)
@@ -306,7 +308,7 @@ def ernesti_kaiva_uusi_apina(apina_id):
             # Lasketaan canvasin y-koordinaattit kaivamisen perusteella
             y_alku = ernestin_oja_alue["y_min"] + matriisi_indeksi * pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin yläraja
             y_loppu = y_alku + pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin alaraja
-            if ernestin_oja_matriisi[matriisi_indeksi][0] <= 0: #Muuta ojan väriä, jos arvo on 0 tai vähemmän
+            if ernestin_oja_matriisi[matriisi_indeksi][0] <= 0 and ojassa_vetta[matriisi_indeksi][0] == False: #Muuta ojan väriä, jos arvo on 0 tai vähemmän JA ojassa ei ole vettä
                 canvas.create_rectangle( # Piirretään ojan osa uudella värillä
                     ernestin_oja_alue["x_min"], 
                     y_alku, 
@@ -316,7 +318,6 @@ def ernesti_kaiva_uusi_apina(apina_id):
                     outline='red')
                 canvas.update()
 
-        print(f"Apina {apina_id} kaivaa kohdasta {i}") # Tulostetaan kaivamisen tilaa
         canvas.coords(apina["kuva"], x, y - i, x + 10, y - i + 10) # Siirretään apina kaivamisen aikana
         time.sleep(lepoaika) # Muutetaan lepo aikaa apinan väsymyksen mukaan.
         lepoaika *=2 # Tuplataan lepoaika aina seuraavalle kierrokselle.
@@ -368,7 +369,7 @@ def kernesti_kaiva_uusi_apina(apina_id):
             # Lasketaan canvasin y-koordinaattit kaivamisen perusteella
             y_alku = kernestin_oja_alue["y_min"] + matriisi_indeksi * pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin yläraja
             y_loppu = y_alku + pikselit_per_askel # Lasketaan visuaallisen alueen y-koordinaatin alaraja
-            if kernestin_oja_matriisi[matriisi_indeksi][0] <= 0: #Muuta ojan väriä, jos arvo on 0 tai vähemmän
+            if kernestin_oja_matriisi[matriisi_indeksi][0] <= 0 and ojassa_vetta[matriisi_indeksi][0] == False: #Muuta ojan väriä, jos arvo on 0 tai vähemmän JA ojassa ei ole vettä
                 canvas.create_rectangle( # Piirretään ojan osa uudella värillä
                     kernestin_oja_alue["x_min"], 
                     y_alku, 
@@ -389,8 +390,8 @@ def kernesti_kaiva_uusi_apina(apina_id):
 kernesti_hakee_apinan_nappi = Button(root, text='Kohta 3: Kernesti hakee apinan', command=lambda: threading.Thread(target =kernesti_hakee_apinan).start())
 kernesti_hakee_apinan_nappi.place(x=250, y=50)
 # Luodaan nappi, jolla Ernesti laittaa yhden apinan kaivamaan.
-kernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 3: Kernesti: Laita apina kaivamaan', command=kernesti_laittaa_apinan_kaivamaan) 
-kernesti_laittaa_apinan_kaivamaan_nappi.pack()
+#kernesti_laittaa_apinan_kaivamaan_nappi = Button(root, text='Kohta 3: Kernesti: Laita apina kaivamaan', command=kernesti_laittaa_apinan_kaivamaan) 
+#kernesti_laittaa_apinan_kaivamaan_nappi.pack()
 # Luodaan nappi, jolla Ernesti voi lisätä uuden apinan kaivamaan. 
 ernesti_laita_uusi_apina_kaivamaan_nappi = Button(root, text='Kohta 3: Ernesti: Laita uusi apina kaivamaan', command=ernesti_laittaa_uuden_apinan_kaivamaan)
 ernesti_laita_uusi_apina_kaivamaan_nappi.pack()
@@ -576,8 +577,8 @@ def k_luo_seuraava_apina():
         return
 
 # Luodaan nappi, jolla täytetään ojat
-tayta_ojat_nappi = Button(root, text='Kohta 4: Täytä ojat', command=tayta_ojat)
-tayta_ojat_nappi.pack()
+#tayta_ojat_nappi = Button(root, text='Kohta 4: Täytä ojat', command=tayta_ojat)
+#tayta_ojat_nappi.pack()
 # Luodaan nappi, jolla Ernesti voi laittaa apinat heti töihin.
 e_laittaa_apinan_heti_töihin_nappi = Button(root, text='Kohta 4: Ernesti: Laita apina heti töihin', command=e_laittaa_apinan_heti_töihin)
 e_laittaa_apinan_heti_töihin_nappi.pack()
@@ -586,10 +587,240 @@ k_laittaa_apinan_heti_töihin_nappi = Button(root, text='Kohta 4: Kernesti: Lait
 k_laittaa_apinan_heti_töihin_nappi.pack()
 
 # --------------------- OPTIMAALINEN RESURSSIEN KÄYTTÖ PÄÄTTYY ------------------
+# --------------------- TAVOITTEENA TÄYSI UIMA-ALLAS --------------------------
+# Määritellään tilamuuttujat
+ernesti_voitti = False
+kernesti_voitti = False
+
+# Luodaan funktio, jolla muutetaan Ernestin ojan väriä kun siellä on vettä
+def e_muuta_varia(nykyinen_rivi):
+    y_min = ernestin_oja_alue["y_min"] + nykyinen_rivi * 1 # Skaalataan rivit
+    y_max = y_min +1 # Annetaan korkeudeksi yksi yksikkö
+    #Piirretään canvasille sinistä
+    canvas.create_rectangle(
+        ernestin_oja_alue["x_min"], y_min,
+        ernestin_oja_alue["x_max"], y_max, 
+        fill="blue", outline="blue"
+    )
+
+# Luodaan funktio, jolla Kernestin ojan väriä muutetaan, kun siellä on vettä
+def k_muuta_varia(nykyinen_rivi):
+    y_min = ernestin_oja_alue["y_min"] + nykyinen_rivi * 1 # Skaalataan rivit
+    y_max = y_min +1 # Annetaan korkeudeksi yksi yksikkö
+    #Piirretään canvasille sinistä
+    canvas.create_rectangle(
+        kernestin_oja_alue["x_min"], y_min,
+        kernestin_oja_alue["x_max"], y_max, 
+        fill="blue", outline="blue"
+    )
+def u_muuta_varia(indeksi):
+    print("Uima-allas täyttyy")
+
+# Luodaan threading käyttäen funktio, joka tarkkaillee milloin Ernestin ojasta on reitti merelle ja täyttää sitä vedellä sitä mukaan kuin oja valmistuu.
+def e_oja_vahti():
+    print("Ernestin oja vahti tarkkailee ojia")
+    global ernesti_voitti
+    nykyinen_rivi = 0
+    # Nyt oja vahdin pitäisi tarkkailla kummankin ojan meren puoleista päätä, että milloin ojista on reitti merelle.
+    while True:
+            if ernestin_oja_matriisi[0][0] <= 0: # Meren puoleinen pää on nolla
+                print("Ernestin ojasta on reitti merelle")
+                while True:
+                    if ernestin_oja_matriisi[0][0] <= 0: # Meren puoleinen matriisin arvo on nolla tai pienempi
+                        print("Ernestin ojasta on reitti merelle")
+                        while nykyinen_rivi < len(ernestin_oja_matriisi): # Jatketaan niin kauan, että ojamatriisi ollaan käyty läpi
+                            if ernestin_oja_matriisi[nykyinen_rivi][0] <= 0: # Jos nyt käytävän rivin arvo on nolla tai pienempi
+                                print("Laitetaan vettä seuraavaan soluun")
+                                play_sound(vesi) # Soitetaan vesi ääni
+                                e_muuta_varia(nykyinen_rivi)
+                                ojassa_vetta[nykyinen_rivi][0]= True # Merkataan, että ojassa on vettä
+                                nykyinen_rivi +=1 # Siirrytään seuraavaan riviin
+                            else:
+                                print("Vedellä ei vielä paikkaa jatkua. Odotellaaan...")
+                                time.sleep(1)
+                                break
+                    if all(rivi[0]<= 0 for rivi in ernestin_oja_matriisi): # Käydään kaikki rivit läpi ja tarkistetaan ovatko ne nollia tai pienempiä
+                        print("Ernestin oja on täynnä")
+                        ernesti_voitti = True
+                        break
+                    time.sleep(1) # Odotellaan täälläkin hetki
+
+# Luodaan threading käyttäen funktio, joka tarkkaillee milloin Kernestin ojasta on reitti merelle ja täyttää sitä vedellä sitä mukaan kuin oja valmistuu.
+def k_oja_vahti():
+    print("Kernestin oja vahti tarkkailee ojia")
+    global kernesti_voitti
+    nykyinen_rivi = 0
+    # Nyt oja vahdin pitäisi tarkkailla kummankin ojan meren puoleista päätä, että milloin ojista on reitti merelle.
+    while True:
+            if kernestin_oja_matriisi[0][0] <= 0: # Meren puoleinen pää on nolla
+                print("Kernestin ojasta on reitti merelle")
+                while True:
+                    if kernestin_oja_matriisi[0][0] <= 0: # Meren puoleinen matriisin arvo on nolla tai pienempi
+                        print("Kernestin ojasta on reitti merelle")
+                        while nykyinen_rivi < len(kernestin_oja_matriisi): # Jatketaan niin kauan, että ojamatriisi ollaan käyty läpi
+                            if kernestin_oja_matriisi[nykyinen_rivi][0] <= 0: # Jos nyt käytävän rivin arvo on nolla tai pienempi
+                                print("Laitetaan vettä seuraavaan soluun")
+                                play_sound(vesi) # Soitetaan vesi ääni
+                                k_muuta_varia(nykyinen_rivi)
+                                ojassa_vetta[nykyinen_rivi][0]= True # Merkataan, että ojassa on vettä
+                                nykyinen_rivi +=1 # Siirrytään seuraavaan riviin
+                            else:
+                                print("Vedellä ei vielä paikkaa jatkua. Odotellaaan...")
+                                time.sleep(1)
+                                break
+                    if all(rivi[0]<= 0 for rivi in kernestin_oja_matriisi): # Käydään kaikki rivit läpi ja tarkistetaan ovatko ne nollia tai pienempiä
+                        print("Kernestin oja on täynnä")
+                        kernesti_voitti = True
+                        break
+                    time.sleep(1) # Odotellaan täälläkin hetki           
+ 
+ # Luodaan uima-allas vahti 
+def uima_allas_vahti():
+    print("Uima-allas vahti tarkkailee")
+    global ernesti_voitti, kernesti_voitti
+    while True:
+            if ernesti_voitti:
+                tayta_uima_allas("Ernesti")
+                break
+            elif kernesti_voitti:
+                tayta_uima_allas("Kernesti")
+                break
+            else:
+                print("Vedellä ei vielä paikkaa jatkua. Odotellaaan...")
+                time.sleep(1)
+
+def tayta_uima_allas(voittaja):
+    print("Uima-allas täyttyy")
+    solu_leveys = (uima_allas_alue["x_max"] - uima_allas_alue["x_min"]) / len(uima_allas_matriisi[0]) # Lasketaan solun leveys pikseleinä
+    solu_korkeus = (uima_allas_alue["y_max"] - uima_allas_alue["y_min"]) / len(uima_allas_matriisi) # Lasketaan solun korkeus pikseleinä
+    for y in range(len(uima_allas_matriisi)): # Käydään läpi uima-altaan matriisi ja täytetään se solu kerrallaan vedellä
+        for x in range(len(uima_allas_matriisi[y])):
+            uima_allas_matriisi[y][x] = 1 # Merkataan, että uima-altaassa on vettä
+            # Lasketaan solun koordinaatit canvas alueella
+            x_alku = uima_allas_alue["x_min"] + x * solu_leveys
+            x_loppu = x_alku + solu_leveys
+            y_alku = uima_allas_alue["y_min"] + y * solu_korkeus
+            y_loppu = y_alku + solu_korkeus
+
+            # Piirretään solu sinisellä
+            canvas.create_rectangle(x_alku, y_alku, x_loppu, y_loppu, fill="blue", outline="blue")
+
+            # Päivitetään canvas
+            canvas.update()
+            time.sleep(0.005)
+    
+    if voittaja == "Ernesti":
+            print("Ernesti voitti!")
+            # Seuraavaksi säädetään ääni soimaan 10 sekunnin ajan
+            e_voitti_pituus = e_voitti.get_length() # Lasketaan äänen pituus
+            toisto_maara = int(10 / e_voitti_pituus) # Lasketaan montako kertaa ääni soitetaan
+            jaljella = 10 % e_voitti_pituus # Lasketaan ylijäänyt aika, jos toistomäärä ei ole tasaluku
+            for _ in range(toisto_maara):
+                play_sound(e_voitti)
+                time.sleep(e_voitti_pituus)
+            if jaljella > 0:
+                e_voitti.play()
+                time.sleep(jaljella)
+            
+            pygame.mixer.stop()
+                
+    else:
+            print("Kernesti voitti!")
+            # Seuraavaksi säädetään ääni soimaan 10 sekunnin ajan
+            k_voitti_pituus = k_voitti.get_length()
+            toisto_maara = int(10 / k_voitti_pituus)
+            jaljella = 10 % k_voitti_pituus 
+            for _ in range(toisto_maara):
+                play_sound(k_voitti)
+                time.sleep(k_voitti_pituus)
+            if jaljella > 0:
+                k_voitti.play()
+                time.sleep(jaljella)
+            pygame.mixer.stop()
+
+
+    # Nyt tämän vahdin pitää siis tarkkailla, että milloin oja on niin pitkällä, että alkaa seuraavaksi täyttämään uima-allasta.
+    # Eli katsotaan ernestin ja kernestin oja matriisien 100 päät, että kummassa on ensin nolla tai ykkönen.
+    #Uima-allas voisi siis täyttyä, kun jompi kumpi on saanut ojan valmiiksi
+    # Uima-altaan täyttö voisi olla pikseli kerrallaan, jotta saadaan kiva animaatio
+    #Muistetaan sitten lisätä vielä ääni, joka ilmaisee kumpi on uima-altaan täyttänyt. 
+
+
+# Luodaan funktio, jolla käynnistetään uima-allas vahti
+def kaynnista_uima_allas_vahti():
+    threading.Thread(target=uima_allas_vahti).start()
+
+# Funktio jolla käynnistetään oja vahti
+def e_kaynnista_oja_vahti():
+    threading.Thread(target=e_oja_vahti).start()
+
+# Funktio jolla käynnistetään oja vahti
+def k_kaynnista_oja_vahti():
+    threading.Thread(target=k_oja_vahti).start()
+
+
+# Luodaan nappi, jolla käynnistetään oja vahti
+e_kaynnista_oja_vahti_nappi = Button(root, text='Kohta 5: Käynnistä Ernestin oja vahti', command=e_kaynnista_oja_vahti)
+e_kaynnista_oja_vahti_nappi.pack()
+k_kaynnista_oja_vahti_nappi = Button(root, text='Kohta 5: Käynnistä Kernestin oja vahti', command=k_kaynnista_oja_vahti)
+k_kaynnista_oja_vahti_nappi.pack()
+kaynnista_uima_allas_vahti_nappi = Button(root, text='Kohta 5: Käynnistä uima-allas vahti', command=kaynnista_uima_allas_vahti)
+kaynnista_uima_allas_vahti_nappi.pack()
+
+
+
+# Nappi jolla laitetaan ernestin oja matriisin alku nollaksi
+def nollaa_ernestin_oja_matriisi():
+    for i in range(100):
+        ernestin_oja_matriisi[i][0] = 0
+    print("Ernestin oja matriisi nollattu")
+# Nappi jolla laitetaan ernestin oja matriisin alku nollaksi
+def nollaa_kernestin_oja_matriisi():
+    for i in range(100):
+        kernestin_oja_matriisi[i][0] = 0
+    print("Kernestin oja matriisi nollattu")
+
+index = [0,0]
+def nollaa_ernestin_oja_matriisi_pikseli_kerrallaan():
+    global index
+    y, x = index
+    if y < len(ernestin_oja_matriisi) and x < len(ernestin_oja_matriisi[0]):
+        ernestin_oja_matriisi[y][x]=0
+
+        if x + 1 < len(ernestin_oja_matriisi[0]):
+            index = [y,x +1]
+        else:
+            index = [y+1,0]
+
+def nollaa_kernestin_oja_matriisi_pikseli_kerrallaan():
+    global index
+    y, x = index
+    if y < len(kernestin_oja_matriisi) and x < len(kernestin_oja_matriisi[0]):
+        kernestin_oja_matriisi[y][x]=0
+
+        if x + 1 < len(kernestin_oja_matriisi[0]):
+            index = [y,x +1]
+        else:
+            index = [y+1,0]
+
+
+
+# Nappi jolla laitetaan kernestin oja matriisin alku nollaksi
+ernestin_oja_matriisi_nollaa_nappi = Button(root, text='Kohta 5: Nollaa Ernestin oja matriisi', command=nollaa_ernestin_oja_matriisi)
+ernestin_oja_matriisi_nollaa_nappi.pack()
+
+kernesti_oja_matriisi_nolla_nappi = Button(root, text='Kohta 5: Nollaa Kernestin oja matriisi', command=nollaa_kernestin_oja_matriisi)
+kernesti_oja_matriisi_nolla_nappi.pack()
+
+nollaa_pikseli_pikseliltä_nappi = Button(root,text=" Nollaa pikseli pikseliltä", command=nollaa_ernestin_oja_matriisi_pikseli_kerrallaan )
+nollaa_pikseli_pikseliltä_nappi.pack()
+k_nollaa_pikseli_pikseliltä_nappi = Button(root,text=" Nollaa pikseli pikseliltä K", command=nollaa_kernestin_oja_matriisi_pikseli_kerrallaan )
+k_nollaa_pikseli_pikseliltä_nappi.pack()
+
+# --------------------- TAVOITTEENA TÄYSI UIMA-ALLAS PÄÄTTYY --------------------------
 # ----------- DEBUGGIN ------------------
 # Tämä on nyt vain debuggausta varten oleva funktio, jolla voin tarkistaa apinoiden tilan
-def tulosta_apinat():
-    print(apinat)
+
 
 def tulosta_ernestin_oja_matriisi():
     print(ernestin_oja_matriisi)
@@ -597,15 +828,14 @@ def tulosta_ernestin_oja_matriisi():
 def tulosta_kernestin_oja_matriisi():
     print(kernestin_oja_matriisi)
 
-# Luodaan nappi, jolla tulostetaan apinoiden tila
-tulosta_apinat_nappi = Button(root, text='Tulosta apinat', command=tulosta_apinat)
-tulosta_apinat_nappi.pack()
 
 tulosta_ernestin_oja_nappi = Button(root, text='Tulosta Ernestin oja', command=tulosta_ernestin_oja_matriisi)
 tulosta_ernestin_oja_nappi.pack()
 
 tulosta_kernestin_oja_nappi = Button(root, text='Tulosta Kernestin oja', command=tulosta_kernestin_oja_matriisi)
 tulosta_kernestin_oja_nappi.pack()
+
+
 #-------- DEBUGGIN PÄÄTTYY ----------------
 
 
